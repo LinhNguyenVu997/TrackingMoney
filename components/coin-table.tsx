@@ -1,14 +1,24 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getTrendingPairs } from '@/lib/api';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
+function formatUsd(n: number | undefined | null) {
+  if (!n) return '-';
+  if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `$${(n / 1e3).toFixed(2)}K`;
+  return `$${n.toFixed(2)}`;
+}
+
 export function CoinTable() {
+  const router = useRouter();
   const { data, isLoading } = useQuery({
     queryKey: ['trending', 'solana'],
     queryFn: () => getTrendingPairs('solana'),
@@ -18,7 +28,7 @@ export function CoinTable() {
     return (
       <div className="space-y-2">
         {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full" />
+          <Skeleton key={i} className="h-12 w-full" />
         ))}
       </div>
     );
@@ -26,48 +36,68 @@ export function CoinTable() {
 
   return (
     <Card className="p-0 overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-muted/50 text-xs uppercase">
-          <tr>
-            <th className="p-3 text-left">Token</th>
-            <th className="p-3 text-right">Price</th>
-            <th className="p-3 text-right">24h Change</th>
-            <th className="p-3 text-right">Volume</th>
-            <th className="p-3 text-right">Liquidity</th>
-            <th className="p-3 text-right">Age</th>
+      <table className="w-full text-sm">
+        <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+          <tr className="border-b">
+            <th className="px-4 py-3 text-left font-medium w-10">#</th>
+            <th className="px-4 py-3 text-left font-medium">Token</th>
+            <th className="px-4 py-3 text-right font-medium">Price</th>
+            <th className="px-4 py-3 text-right font-medium">24h %</th>
+            <th className="px-4 py-3 text-right font-medium">Volume (24h)</th>
+            <th className="px-4 py-3 text-right font-medium">Liquidity</th>
+            <th className="px-4 py-3 text-right font-medium">Age</th>
           </tr>
         </thead>
         <tbody>
-          {data?.map((pair) => (
-            <tr key={pair.pairAddress} className="border-t hover:bg-muted/30">
-              <td className="p-3">
-                <div className="font-semibold">{pair.baseToken.symbol}</div>
-                <div className="text-xs text-muted-foreground truncate max-w-[150px]">
-                  {pair.baseToken.name}
-                </div>
-              </td>
-              <td className="p-3 text-right font-mono">
-                ${parseFloat(pair.priceUsd).toFixed(6)}
-              </td>
-              <td className="p-3 text-right">
-                <Badge variant={pair.priceChange?.h24 >= 0 ? 'default' : 'destructive'}>
-                  {pair.priceChange?.h24 >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                  {pair.priceChange?.h24?.toFixed(2)}%
-                </Badge>
-              </td>
-              <td className="p-3 text-right">
-                ${(pair.volume?.h24 / 1000).toFixed(1)}k
-              </td>
-              <td className="p-3 text-right">
-                ${(pair.liquidity?.usd / 1000).toFixed(1)}k
-              </td>
-              <td className="p-3 text-right text-xs text-muted-foreground">
-                {pair.pairCreatedAt
-                  ? formatDistanceToNow(pair.pairCreatedAt, { addSuffix: true })
-                  : '-'}
-              </td>
-            </tr>
-          ))}
+          {data?.map((pair, idx) => {
+            const change = pair.priceChange?.h24 ?? 0;
+            const positive = change >= 0;
+            return (
+              <tr
+                key={pair.pairAddress}
+                className="border-b border-border/50 hover:bg-muted/40 cursor-pointer transition-colors"
+                onClick={() => router.push(`/coin/${pair.chainId}/${pair.pairAddress}`)}
+              >
+                <td className="px-4 py-3 text-muted-foreground tabular-nums">{idx + 1}</td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/coin/${pair.chainId}/${pair.pairAddress}`}
+                    className="block"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="font-semibold">{pair.baseToken.symbol}</div>
+                    <div className="text-xs text-muted-foreground truncate max-w-[180px]">
+                      {pair.baseToken.name}
+                    </div>
+                  </Link>
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums font-medium">
+                  ${parseFloat(pair.priceUsd).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 8,
+                  })}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <span
+                    className={`inline-flex items-center gap-0.5 tabular-nums font-medium ${positive ? 'text-green-500' : 'text-red-500'}`}
+                  >
+                    {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                    {positive ? '+' : ''}
+                    {change.toFixed(2)}%
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums">{formatUsd(pair.volume?.h24)}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                  {formatUsd(pair.liquidity?.usd)}
+                </td>
+                <td className="px-4 py-3 text-right text-xs text-muted-foreground">
+                  {pair.pairCreatedAt
+                    ? formatDistanceToNow(pair.pairCreatedAt, { addSuffix: true })
+                    : '-'}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </Card>
