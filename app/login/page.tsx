@@ -43,6 +43,14 @@ function LoginForm() {
       toast.error('Email and password required');
       return;
     }
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      toast.error('Email must end with @gmail.com');
+      return;
+    }
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
     setPending(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signUp({ email, password });
@@ -51,7 +59,7 @@ function LoginForm() {
       toast.error(error.message);
       return;
     }
-    toast.success('Account created. Check email to confirm or sign in if auto-confirm is on.');
+    toast.success('Account created. Sign in below.');
   }
 
   return (

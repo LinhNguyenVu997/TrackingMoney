@@ -18,39 +18,37 @@ interface BuyEntry {
 const recentBuys = new Map<string, BuyEntry[]>();
 const lastAlertAt = new Map<string, number>();
 
-function pruneOld(pool: string, now: number) {
-  const arr = recentBuys.get(pool);
+function pruneOld(key: string, now: number) {
+  const arr = recentBuys.get(key);
   if (!arr) return;
   const cutoff = now - config.clusterWindowSec * 1000;
   const fresh = arr.filter((e) => e.ts >= cutoff);
-  if (fresh.length === 0) recentBuys.delete(pool);
-  else recentBuys.set(pool, fresh);
+  if (fresh.length === 0) recentBuys.delete(key);
+  else recentBuys.set(key, fresh);
 }
 
-export function evaluateBuy(event: SwapEvent): Alert | null {
+export function evaluateBuy(event: SwapEvent, minUsd: number, cooldownKey: string): Alert | null {
   if (event.side !== 'buy') return null;
 
   const now = Date.now();
-  const pool = event.pairAddress;
-
-  const lastAlert = lastAlertAt.get(pool) ?? 0;
+  const lastAlert = lastAlertAt.get(cooldownKey) ?? 0;
   if (now - lastAlert < config.cooldownSec * 1000) return null;
 
-  if (event.amountUsd >= config.whaleMinUsd) {
-    lastAlertAt.set(pool, now);
+  if (event.amountUsd >= minUsd) {
+    lastAlertAt.set(cooldownKey, now);
     return { reason: 'whale_buy', event };
   }
 
   if (event.amountUsd >= config.clusterMinUsd) {
-    pruneOld(pool, now);
-    const arr = recentBuys.get(pool) ?? [];
+    pruneOld(cooldownKey, now);
+    const arr = recentBuys.get(cooldownKey) ?? [];
     arr.push({ ts: now, usd: event.amountUsd });
-    recentBuys.set(pool, arr);
+    recentBuys.set(cooldownKey, arr);
 
     if (arr.length >= config.clusterCount) {
       const total = arr.reduce((s, e) => s + e.usd, 0);
-      lastAlertAt.set(pool, now);
-      recentBuys.delete(pool);
+      lastAlertAt.set(cooldownKey, now);
+      recentBuys.delete(cooldownKey);
       return {
         reason: 'cluster_buy',
         event,
@@ -65,9 +63,9 @@ export function evaluateBuy(event: SwapEvent): Alert | null {
 
 export function pruneAll() {
   const now = Date.now();
-  for (const pool of recentBuys.keys()) pruneOld(pool, now);
+  for (const key of recentBuys.keys()) pruneOld(key, now);
   const cooldownCutoff = now - config.cooldownSec * 1000;
-  for (const [pool, ts] of lastAlertAt) {
-    if (ts < cooldownCutoff) lastAlertAt.delete(pool);
+  for (const [key, ts] of lastAlertAt) {
+    if (ts < cooldownCutoff) lastAlertAt.delete(key);
   }
 }

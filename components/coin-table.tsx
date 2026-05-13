@@ -36,7 +36,8 @@ export function CoinTable() {
 
   return (
     <Card className="p-0 overflow-hidden">
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full text-sm min-w-[700px]">
         <thead className="text-xs uppercase tracking-wider text-muted-foreground">
           <tr className="border-b">
             <th className="px-4 py-3 text-left font-medium w-10">#</th>
@@ -100,6 +101,7 @@ export function CoinTable() {
           })}
         </tbody>
       </table>
+      </div>
     </Card>
   );
 }

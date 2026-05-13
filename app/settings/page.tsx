@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { TelegramLinkButton } from '@/components/telegram-link-button';
+import { PaperSettingsForm } from '@/components/paper-settings-form';
 
 export default async function SettingsPage() {
   if (!isSupabaseConfigured()) {
@@ -26,7 +27,16 @@ export default async function SettingsPage() {
 
   return (
     <main className="container mx-auto p-6 max-w-2xl space-y-6">
-      <h1 className="text-3xl font-bold">Settings</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+
+      <Card className="p-6 space-y-3">
+        <h2 className="font-semibold">Paper trading</h2>
+        <p className="text-sm text-muted-foreground">
+          Simulate trades on alerts to validate strategy with zero risk. Configure once → bot opens
+          positions automatically and closes them at stop-loss / take-profit.
+        </p>
+        <PaperSettingsForm />
+      </Card>
 
       <Card className="p-6 space-y-3">
         <h2 className="font-semibold">Telegram alerts</h2>

@@ -1,27 +1,30 @@
 import Link from 'next/link';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
+import { createClient, isSupabaseConfigured, isCurrentUserAdmin } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/search-bar';
+import { UnreadAlertsBadge } from '@/components/unread-alerts-badge';
 
 export async function SiteHeader() {
   const configured = isSupabaseConfigured();
   let user: { email?: string; user_metadata?: { user_name?: string } } | null = null;
+  let isAdmin = false;
   if (configured) {
     const supabase = await createClient();
     const { data } = await supabase.auth.getUser();
     user = data.user;
+    if (user) isAdmin = await isCurrentUserAdmin();
   }
 
   return (
     <header className="border-b">
-      <div className="container mx-auto max-w-6xl flex items-center gap-4 p-4">
-        <Link href="/" className="font-bold text-lg shrink-0 hover:opacity-80">
+      <div className="container mx-auto max-w-6xl flex flex-wrap items-center gap-3 p-3 sm:p-4">
+        <Link href="/" className="font-bold text-base sm:text-lg shrink-0 hover:opacity-80">
           🐋 Whale Tracker
         </Link>
-        <div className="flex-1 max-w-sm">
+        <div className="order-3 w-full sm:order-2 sm:flex-1 sm:max-w-sm">
           <SearchBar />
         </div>
-        <nav className="flex items-center gap-2">
+        <nav className="order-2 sm:order-3 flex items-center gap-1 flex-wrap">
           <Link href="/">
             <Button variant="ghost" size="sm" className="text-base font-medium">
               Trending
@@ -32,9 +35,20 @@ export async function SiteHeader() {
               Watchlist
             </Button>
           </Link>
+          <Link href="/wallets">
+            <Button variant="ghost" size="sm" className="text-base font-medium">
+              Wallets
+            </Button>
+          </Link>
           <Link href="/alerts">
             <Button variant="ghost" size="sm" className="text-base font-medium">
               Alerts
+              <UnreadAlertsBadge />
+            </Button>
+          </Link>
+          <Link href="/portfolio">
+            <Button variant="ghost" size="sm" className="text-base font-medium">
+              Portfolio
             </Button>
           </Link>
           <Link href="/settings">
@@ -42,6 +56,13 @@ export async function SiteHeader() {
               Settings
             </Button>
           </Link>
+          {isAdmin && (
+            <Link href="/admin/deposits">
+              <Button variant="ghost" size="sm" className="text-base font-medium text-blue-400">
+                Admin
+              </Button>
+            </Link>
+          )}
           {!configured ? (
             <span className="text-xs text-muted-foreground">Auth not configured</span>
           ) : user ? (

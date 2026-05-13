@@ -3,6 +3,7 @@ import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
 import { SiteHeader } from '@/components/site-header';
 import { RealtimeAlerts } from '@/components/realtime-alerts';
+import { DepositNotifier } from '@/components/deposit-notifier';
 import './globals.css';
 
 const inter = Inter({
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SiteHeader />
           {children}
           <RealtimeAlerts />
+          <DepositNotifier />
         </Providers>
         <Toaster />
       </body>

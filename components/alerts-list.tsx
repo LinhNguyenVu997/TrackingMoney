@@ -22,8 +22,11 @@ interface AlertRow {
     buyer?: string;
     clusterCount?: number;
     clusterTotalUsd?: number;
+    wallet?: string;
+    label?: string | null;
   };
   created_at: string;
+  read_at: string | null;
 }
 
 const PAGE_SIZE = 30;
@@ -31,6 +34,7 @@ const FILTERS = [
   { label: 'All', value: 'all' },
   { label: '🐋 Whale', value: 'whale_buy' },
   { label: '🟢 Cluster', value: 'cluster_buy' },
+  { label: '👤 Wallet', value: 'wallet_activity' },
 ] as const;
 
 export function AlertsList() {
@@ -47,7 +51,7 @@ export function AlertsList() {
       if (active) setLoading(true);
       let q = supabase
         .from('alerts')
-        .select('id, kind, chain, pair_address, payload, created_at')
+        .select('id, kind, chain, pair_address, payload, created_at, read_at')
         .order('created_at', { ascending: false })
         .limit(PAGE_SIZE);
       if (filter !== 'all') q = q.eq('kind', filter);
@@ -57,6 +61,14 @@ export function AlertsList() {
       setItems(rows);
       setHasMore(rows.length === PAGE_SIZE);
       setLoading(false);
+
+      const unreadIds = rows.filter((r) => !r.read_at).map((r) => r.id);
+      if (unreadIds.length > 0) {
+        await supabase
+          .from('alerts')
+          .update({ read_at: new Date().toISOString() })
+          .in('id', unreadIds);
+      }
     })();
     return () => {
       active = false;
@@ -105,7 +117,7 @@ export function AlertsList() {
     const lastDate = items[items.length - 1].created_at;
     let q = supabase
       .from('alerts')
-      .select('id, kind, chain, pair_address, payload, created_at')
+      .select('id, kind, chain, pair_address, payload, created_at, read_at')
       .lt('created_at', lastDate)
       .order('created_at', { ascending: false })
       .limit(PAGE_SIZE);
